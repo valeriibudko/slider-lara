@@ -11,11 +11,14 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
  && docker-php-ext-install -j"$(nproc)" intl pdo_mysql opcache zip sysvsem \
  && rm -rf /var/lib/apt/lists/*
 
+RUN mkdir -p /run/php && chown -R www-data:www-data /run/php
+
 # Composer
 COPY --from=composer:2 /usr/bin/composer /usr/bin/composer
 
 # PHP settings (you create this file below)
-COPY .docker/php/conf.d/laravel.ini /usr/local/etc/php/conf.d/zz-laravel.ini
+# TODO Fix
+#COPY .docker/php/conf.d/laravel.ini /usr/local/etc/php/conf.d/zz-laravel.ini
 
 WORKDIR /var/www/html
 
@@ -44,14 +47,29 @@ RUN --mount=type=cache,target=/root/.composer/cache \
     fi
 
 RUN composer global require laravel/installer
-# Warmup cache in prod
-RUN if [ "$APP_ENV" = "prod" ]; then \
-      php artisan view:clear && \
-      php artisan view:cache; \
-    fi
 
-# TODO dell ----- Permissions (Symfony writes to var/)
-#RUN chown -R www-data:www-data var
+
+RUN apt-get update && apt-get install -y curl \
+    && curl -fsSL https://deb.nodesource.com/setup_20.x | bash - \
+    && apt-get install -y nodejs
+
+#RUN cp .env.example .env
+#
+USER root
+RUN mkdir -p /var/www/.npm && chown -R www-data:www-data /var/www/.npm
+RUN chown -R www-data:www-data /var/www/html
+
+USER root
+COPY package.json package-lock.json* ./
+RUN npm install
+
+COPY . .
+
+RUN chown -R www-data:www-data /var/www/html
+
+USER www-data
+RUN npm run build
+
 USER www-data
 
 EXPOSE 9000
@@ -61,7 +79,7 @@ CMD ["php-fpm"]
 FROM base AS dev
 USER root
 RUN pecl install xdebug && docker-php-ext-enable xdebug
-ENV APP_ENV=dev APP_DEBUG=1
+ENV APP_ENV=local APP_DEBUG=1
 RUN --mount=type=cache,target=/root/.composer/cache \
     composer install --prefer-dist --no-progress --no-interaction
 USER www-data

@@ -19,6 +19,19 @@ php artisan migrate
 
 `php artisan serve --port=8001` - Run project local
 
+## Run project with docker
+
+```
+cp .env.example .env
+docker-compose up -d --build && docker ps
+docker-compose exec php bash
+
+php artisan migrate
+php artisan key:generate
+
+http://127.0.0.1:8001/slider
+```
+
 # Working with docker
 
 ```
