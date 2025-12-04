@@ -7,7 +7,7 @@
 <a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/l/laravel/framework" alt="License"></a>
 </p>
 
-## Deploy project
+## Manual deploy project
 
 ```
 composer install
@@ -16,9 +16,62 @@ npm run build
 
 php artisan migrate
 ```
-## Run project
 
-`php artisan serve --port=8001`
+`php artisan serve --port=8001` - Run project local
+
+## Run project with docker
+
+```
+cp .env.example .env
+docker-compose up -d --build && docker ps
+docker-compose exec php bash
+
+php artisan migrate
+php artisan key:generate
+
+http://127.0.0.1:8001/slider
+```
+
+# Working with docker
+
+```
+# Build and run images
+docker-compose up -d --build && docker ps
+
+# Run images and check images
+docker-compose up -d && docker ps
+
+# Rebuild container with images
+docker-compose build --no-cache
+docker compose build --no-cache php
+
+# Stop images
+docker-compose down -v
+
+# Pull updates for images
+docker-compose pull --ignore-buildable
+```
+
+Working with containers:
+```
+# Enter to php container
+docker-compose exec php bash
+
+# Enter to db container
+docker-compose exec db mysql -uroot -p 
+
+# Enter with su to container
+docker exec -it -u 0 <container_name> bash
+```
+
+Debug containers:
+```
+# Get logs db
+docker compose logs --no-color db | tail -n 200
+
+# Verify connectivity from PHP
+docker compose exec php sh -lc 'php -r "(new Predis\\Client(\"redis://redis:6379\"))->ping(); echo \"OK\n\";"'
+```
 
 
 ## About Laravel
